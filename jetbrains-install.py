@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 from typing import Optional
+import tarfile
 
 import colorama
 import requests
@@ -37,39 +38,74 @@ class ColorPrint:
 
 
 class Installer:
-    def __init__(self, url: str):
+    def __init__(self, url: str, destination: str = "/opt/"):
         self.url = url
+        self.destination = destination
         self.filename: str = ""
         self.dirname: str = ""
 
+        if self.url.find('/'):
+            self.filename = self.url.rsplit('/', 1)[1]
+
     def run(self):
         self.download()
+        self.decompress()
         self.install()
         self.cleanup()
 
-    def install(self):
-        status = f"Installing {self.filename}"
+    def decompress(self):
+        status = f"Decompressing {self.filename}:"
         print(status, end=" ")
-        ColorPrint.print_success("done")
+
+        try:
+            with tarfile.open(self.filename, "r") as archive:
+                self.dirname = os.path.commonpath(archive.getnames())
+                members = archive.getmembers()
+                pbar = tqdm(members, desc=status.rstrip(":"), unit_scale=True, file=sys.stdout, leave=False)
+                for member in members:
+                    archive.extract(member)
+                    pbar.update()
+                pbar.close()
+        except:
+            print(f"\r{status}", end=" ")
+            ColorPrint.print_fail("fail")
+        else:
+            print(f"\r{status}", end=" ")
+            ColorPrint.print_success("done")
+
         return
 
+    def install(self):
+        pass
+        # status = f"Installing {self.filename} to {self.destination}:"
+        # print(status, end=" ")
+        #
+        # try:
+        #     with tarfile.open(self.filename, "r") as archive:
+        #         # archive.extractall()
+        #         self.dirname = os.path.commonpath(archive.getnames())
+        # except:
+        #     ColorPrint.print_fail("fail")
+        # else:
+        #     ColorPrint.print_success("done")
+
+        # return
+
     def download(self):
-        if self.url.find('/'):
-            self.filename = self.url.rsplit('/', 1)[1]
         status = f"Downloading {self.filename}:"
         print(f"\r{status}", end=" ")
 
         response = requests.get(self.url, allow_redirects=True, stream=True, timeout=5)
         total_size = int(response.headers.get('content-length', 0))
         block_size = 1024 * 4
-        progress_bar = tqdm(total=total_size, desc=status.rstrip(":"), unit_scale=True, file=sys.stdout, leave=False)
+        pbar = tqdm(total=total_size, desc=status.rstrip(":"), unit_scale=True, file=sys.stdout, leave=False)
         with open(self.filename, 'wb') as handle:
             for data in response.iter_content(block_size):
-                progress_bar.update(len(data))
+                pbar.update(len(data))
                 handle.write(data)
-        progress_bar.close()
+        pbar.close()
 
-        if total_size != 0 and progress_bar.n != total_size:
+        if total_size != 0 and pbar.n != total_size:
             print(f"\r{status}", end=" ")
             ColorPrint.print_fail("fail")
         else:
@@ -84,7 +120,7 @@ class Installer:
 
 
 def removeDir(dirname: str):
-    status = f"Removing {dirname}:"
+    status = f"Removing dir {dirname}:"
     print(status, end=" ")
 
     try:
@@ -131,18 +167,19 @@ def getLatestURL(product_code: str, platform: str = "linux") -> Optional[str]:
                      f"=release", timeout=5)
     response = r.json()
     if platform not in response[product_code][0]["downloads"]:
-        ColorPrint.print_fail("not found")
+        ColorPrint.print_fail("fail")
         return None
     download_links = response[product_code][0]["downloads"][platform]["link"]
-    ColorPrint.print_success("found")
+    ColorPrint.print_success("done")
     return download_links
 
 
 def main():
-    url = getLatestURL(product_codes["datagrip"])
-    Installer(url).run()
-    url = getLatestURL(product_codes["clion"])
-    Installer(url).run()
+    to_install = ["datagrip"]
+    for soft in to_install:
+        print(f"----- {soft.upper()} -----")
+        url = getLatestURL(product_codes[soft])
+        Installer(url).run()
     # parser = argparse.ArgumentParser(
     #     # prog=""
     #     description="Command line installer of Jetbrains product"
