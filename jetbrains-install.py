@@ -49,7 +49,7 @@ class Installer:
 
     def install(self):
         status = f"Installing {self.filename}"
-        print(status, end=" ", flush=True)
+        print(status, end=" ")
         ColorPrint.print_success("done")
         return
 
@@ -57,9 +57,9 @@ class Installer:
         if self.url.find('/'):
             self.filename = self.url.rsplit('/', 1)[1]
         status = f"Downloading {self.filename}:"
-        print(f"\r{status}", end=" ")
+        # print(f"\r{status}", end=" ")
 
-        response = requests.get(self.url, allow_redirects=True, stream=True)
+        response = requests.get(self.url, allow_redirects=True, stream=True, timeout=5)
         total_size = int(response.headers.get('content-length', 0))
         block_size = 1024 * 4
         progress_bar = tqdm(total=total_size, desc=status, unit_scale=True, file=sys.stdout, leave=False)
@@ -80,17 +80,18 @@ class Installer:
     def cleanup(self):
         removeFile(self.filename)
         removeDir(self.dirname)
+        pass
 
 
 def removeDir(dirname: str):
     status = f"Removing {dirname}:"
-    print(status, end=" ", flush=False)
+    print(status, end=" ")
 
     try:
         shutil.rmtree(dirname)
     except OSError as e:
         ColorPrint.print_fail("fail")
-        print(f"\rError: {e.filename} - {e.strerror}.", file=sys.stderr)
+        # print(f"Error: {e.filename} - {e.strerror}.", file=sys.stderr)
     else:
         ColorPrint.print_success("done")
     return
@@ -98,13 +99,13 @@ def removeDir(dirname: str):
 
 def removeFile(filename: str):
     status = f"Removing {filename}:"
-    print(status, end=" ", flush=True)
+    print(status, end=" ")
 
     try:
         os.remove(filename)
     except OSError as e:
         ColorPrint.print_fail("fail")
-        print(f"\rError: {e.filename} - {e.strerror}.", file=sys.stderr)
+        # print(f"Error: {e.filename} - {e.strerror}.", file=sys.stderr)
     else:
         ColorPrint.print_success("done")
     return
@@ -112,7 +113,7 @@ def removeFile(filename: str):
 
 def checkAdminPrivilege() -> bool:
     status = "checking admin privilege:"
-    print(status, end=" ", flush=True)
+    print(status, end=" ")
 
     if os.getuid() == 0:
         print("granted")
@@ -125,7 +126,7 @@ def checkAdminPrivilege() -> bool:
 def getLatestURL(product_code: str, platform: str = "linux") -> Optional[str]:
     status = "Finding the latest download link:"
 
-    print(status, end=" ", flush=True)
+    print(status, end=" ")
     r = requests.get(f"https://data.services.jetbrains.com//products/releases?&code={product_code}&latest=true&type"
                      f"=release", timeout=5)
     response = r.json()
@@ -139,6 +140,8 @@ def getLatestURL(product_code: str, platform: str = "linux") -> Optional[str]:
 
 def main():
     url = getLatestURL(product_codes["datagrip"])
+    Installer(url).run()
+    url = getLatestURL(product_codes["clion"])
     Installer(url).run()
     # parser = argparse.ArgumentParser(
     #     # prog=""
