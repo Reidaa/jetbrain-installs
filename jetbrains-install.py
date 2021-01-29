@@ -57,12 +57,12 @@ class Installer:
         if self.url.find('/'):
             self.filename = self.url.rsplit('/', 1)[1]
         status = f"Downloading {self.filename}:"
-        # print(f"\r{status}", end=" ")
+        print(f"\r{status}", end=" ")
 
         response = requests.get(self.url, allow_redirects=True, stream=True, timeout=5)
         total_size = int(response.headers.get('content-length', 0))
         block_size = 1024 * 4
-        progress_bar = tqdm(total=total_size, desc=status, unit_scale=True, file=sys.stdout, leave=False)
+        progress_bar = tqdm(total=total_size, desc=status.rstrip(":"), unit_scale=True, file=sys.stdout, leave=False)
         with open(self.filename, 'wb') as handle:
             for data in response.iter_content(block_size):
                 progress_bar.update(len(data))
