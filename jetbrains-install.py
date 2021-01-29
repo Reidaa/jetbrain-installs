@@ -1,14 +1,18 @@
+#!/usr/bin/env python3
+
 import os
+import pathlib
 import shutil
 import sys
-from typing import Optional
 import tarfile
+from typing import Optional, List
 
 import colorama
 import requests
 from tqdm import tqdm
 
 product_codes = {
+    # "android-studio": "AI", NOT WORKING
     "idea-ult": "UI",  # IntelliJ IDEA Ultimate
     "idea-com": "IC",  # IntelliJ IDEA Community
     "idea-edu": "IE",  # IntelliJ IDEA Educational
@@ -16,14 +20,13 @@ product_codes = {
     "pycharm-com": "PC",  # PyCharm Community
     "pycharm-edu": "PE",  # PyCharm Educational
     "phpstorm": "PS",
-    "webstorm": "ws",
+    "webstorm": "WS",
     "rubymine": "RM",
     "appcode": "OC",
     "clion": "CL",
     "goland": "GO",
     "datagrip": "DG",
     "rider": "RD",
-    "android-studio": "AI",
 }
 
 
@@ -38,58 +41,35 @@ class ColorPrint:
 
 
 class Installer:
-    def __init__(self, url: str, destination: str = "/opt/"):
+    def __init__(self,
+                 url: str,
+                 bin_destination: str = "/usr/local/bin",
+                 dir_destination: str = "/opt/",
+                 options: List[str] = []
+                 ):
+        self.bin_dest = bin_destination
+        self.dir_dest = dir_destination
+        self.options = options
         self.url = url
-        self.destination = destination
+
+        self.dirlocation = ""
         self.filename: str = ""
         self.dirname: str = ""
+        self.binname: str = ""
+        self.install_log: List[str] = []
 
         if self.url.find('/'):
             self.filename = self.url.rsplit('/', 1)[1]
+        if self.filename.find("-"):
+            self.binname = f"{self.filename.split('-')[0].lower()}.sh"
 
     def run(self):
         self.download()
         self.decompress()
         self.install()
+        self.make_shortcut()
         self.cleanup()
-
-    def decompress(self):
-        status = f"Decompressing {self.filename}:"
-        print(status, end=" ")
-
-        try:
-            with tarfile.open(self.filename, "r") as archive:
-                self.dirname = os.path.commonpath(archive.getnames())
-                members = archive.getmembers()
-                pbar = tqdm(members, desc=status.rstrip(":"), unit_scale=True, file=sys.stdout, leave=False)
-                for member in members:
-                    archive.extract(member)
-                    pbar.update()
-                pbar.close()
-        except:
-            print(f"\r{status}", end=" ")
-            ColorPrint.print_fail("fail")
-        else:
-            print(f"\r{status}", end=" ")
-            ColorPrint.print_success("done")
-
-        return
-
-    def install(self):
-        pass
-        # status = f"Installing {self.filename} to {self.destination}:"
-        # print(status, end=" ")
-        #
-        # try:
-        #     with tarfile.open(self.filename, "r") as archive:
-        #         # archive.extractall()
-        #         self.dirname = os.path.commonpath(archive.getnames())
-        # except:
-        #     ColorPrint.print_fail("fail")
-        # else:
-        #     ColorPrint.print_success("done")
-
-        # return
+        self.post_install()
 
     def download(self):
         status = f"Downloading {self.filename}:"
@@ -111,12 +91,84 @@ class Installer:
         else:
             print(f"\r{status}", end=" ")
             ColorPrint.print_success("done")
+
+        return
+
+    def decompress(self):
+        status = f"Decompressing {self.filename}:"
+        print(status, end=" ")
+
+        try:
+            with tarfile.open(self.filename, "r") as archive:
+                self.dirname = os.path.commonpath(archive.getnames())
+                members = archive.getmembers()
+                pbar = tqdm(members, desc=status.rstrip(":"), unit_scale=True, file=sys.stdout, leave=False)
+                for member in members:
+                    archive.extract(member)
+                    pbar.update()
+                pbar.close()
+        except EOFError as e:
+            print(f"\r{status}", end=" ")
+            ColorPrint.print_fail("fail")
+            print(f"Error: {e}.", file=sys.stderr)
+        else:
+            print(f"\r{status}", end=" ")
+            ColorPrint.print_success("done")
+
+        return
+
+    def install(self):
+        status = f"Installing {self.dirname} to {self.dir_dest}:"
+        print(status, end=" ")
+
+        if "dryrun" not in self.options:
+            try:
+                self.dirlocation = self.dir_dest + self.dirname
+                shutil.copytree(self.dirname, self.dirlocation)
+            except Exception as e:
+                ColorPrint.print_fail("fail")
+                print(f"Error: {e}.", file=sys.stderr)
+            else:
+                ColorPrint.print_success("done")
+        else:
+            print("skipped")
+
+        return
+
+    def make_shortcut(self):
+        src = f"{self.dirlocation}/bin/{self.binname}"
+        dest = f"{self.bin_dest}{self.binname}"
+        status = f"Creating symlink from {src} to {dest}:"
+        print(status, end=" ")
+
+        if "dryrun" not in self.options:
+            if "symlink" in self.options:
+                src = pathlib.Path(src).resolve()
+                dest = pathlib.Path(dest).resolve()
+                try:
+                    os.symlink(src, dest)
+                except Exception as e:
+                    ColorPrint.print_fail("fail")
+                    print(f"Error: {e}.", file=sys.stderr)
+                else:
+                    ColorPrint.print_success("done")
+            elif "script" in self.options:
+                pass
+            else:
+                print("unknown type")
+        else:
+            print("skipped")
+
         return
 
     def cleanup(self):
         removeFile(self.filename)
         removeDir(self.dirname)
         pass
+
+    def post_install(self):
+        for log in self.install_log:
+            print(log)
 
 
 def removeDir(dirname: str):
@@ -127,9 +179,10 @@ def removeDir(dirname: str):
         shutil.rmtree(dirname)
     except OSError as e:
         ColorPrint.print_fail("fail")
-        # print(f"Error: {e.filename} - {e.strerror}.", file=sys.stderr)
+        print(f"Error: {e.filename} - {e.strerror}.", file=sys.stderr)
     else:
         ColorPrint.print_success("done")
+
     return
 
 
@@ -144,6 +197,7 @@ def removeFile(filename: str):
         # print(f"Error: {e.filename} - {e.strerror}.", file=sys.stderr)
     else:
         ColorPrint.print_success("done")
+
     return
 
 
@@ -175,16 +229,26 @@ def getLatestURL(product_code: str, platform: str = "linux") -> Optional[str]:
 
 
 def main():
-    to_install = ["datagrip"]
+    to_install = [
+        "datagrip",
+        "phpstorm",
+        # "webstorm",
+        # "clion",
+    ]
     for soft in to_install:
         print(f"----- {soft.upper()} -----")
         url = getLatestURL(product_codes[soft])
-        Installer(url).run()
+        Installer(url, dir_destination="./test_install/", bin_destination="./test_bin/", options=["symlink"]).run()
+
     # parser = argparse.ArgumentParser(
     #     # prog=""
-    #     description="Command line installer of Jetbrains product"
+    #     description="Command line installer of Jetbrains IDE"
     # )
-    # parser.add_argument()
+    # parser.add_argument("--install")
+    # parser.add_argument("--bin-destination")
+    # parser.add_argument("--dryrun")
+    # parser.add_argument("--dir-destination")
+    # parser.add_argument("--symlink")
 
 
 if __name__ == '__main__':
