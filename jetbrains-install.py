@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import argparse
 import os
 import pathlib
@@ -163,23 +164,40 @@ class Installer:
 
         if not self.options["dry"] and self.flags["install"] is True:
             if self.options["symlink"]:
-                src = pathlib.Path(src).resolve()
-                dest = pathlib.Path(dest).resolve()
-                try:
-                    os.symlink(src, dest)
-                except Exception as e:
-                    ColorPrint.print_fail("fail")
-                    print(f"Error: {e}.", file=sys.stderr)
-                else:
-                    ColorPrint.print_success("done")
+                self._make_symlink()
             elif self.options["script"]:
-                pass
+                self._make_launch_script()
             else:
                 print("unknown type")
         else:
             print("skipped")
 
         return
+
+    def _make_symlink(self):
+        src = f"{self.dirlocation}/bin/{self.binname}"
+        dest = f"{self.bin_dest}/{self.binname}"
+        status = f"Creating symlink from {src} to {dest}:"
+        print(status, end=" ")
+
+        src = pathlib.Path(src).resolve()
+        dest = pathlib.Path(dest).resolve()
+        try:
+            os.symlink(src, dest)
+        except Exception as e:
+            ColorPrint.print_fail("fail")
+            print(f"Error: {e}.", file=sys.stderr)
+        else:
+            ColorPrint.print_success("done")
+
+    def _make_launch_script(self):
+        src = f"{self.dirlocation}/bin/{self.binname}"
+        dest = f"{self.bin_dest}/{self.binname}"
+        status = f"Creating launch script for {src} located in {dest}:"
+        print(status, end=" ")
+        pass
+
+
 
     def cleanup(self):
         if self.filename:
