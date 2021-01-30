@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-
+import argparse
 import os
 import pathlib
 import shutil
 import sys
 import tarfile
-from typing import Optional, List
+from typing import Optional, Dict
 
 import colorama
 import requests
@@ -40,12 +40,16 @@ class ColorPrint:
         print(f"{colorama.Fore.RED}{message}{colorama.Style.RESET_ALL}", end=end)
 
 
+class InstallerError(Exception):
+    pass
+
+
 class Installer:
     def __init__(self,
                  url: str,
                  bin_destination: str = "/usr/local/bin",
                  dir_destination: str = "/opt/",
-                 options: List[str] = []
+                 options: Dict[str, bool] = None
                  ):
         self.bin_dest = bin_destination
         self.dir_dest = dir_destination
@@ -56,20 +60,32 @@ class Installer:
         self.filename: str = ""
         self.dirname: str = ""
         self.binname: str = ""
-        self.install_log: List[str] = []
-
-        if self.url.find('/'):
-            self.filename = self.url.rsplit('/', 1)[1]
-        if self.filename.find("-"):
-            self.binname = f"{self.filename.split('-')[0].lower()}.sh"
+        self.flags = {
+            "decompress": False,
+            "install": False
+        }
 
     def run(self):
+        if not pathlib.Path(self.dir_dest).is_dir():
+            raise InstallerError("Install location is not a directory")
+        if not pathlib.Path(self.bin_dest).is_dir():
+            raise InstallerError("Binary install location is not a directory")
+
+        self.bin_dest = pathlib.Path(self.bin_dest).resolve()
+        self.dir_dest = pathlib.Path(self.dir_dest).resolve()
+
+        if not isAdmin():
+            if not os.access(self.dir_dest, os.W_OK) or not os.access(self.bin_dest, os.W_OK):
+                raise InstallerError(f"Can not access '{self.dir_dest}' and/or '{self.bin_dest}' as regular user")
+
+        self.filename = self.url.rsplit('/', 1)[1]
+        self.binname = f"{self.filename.split('-')[0].lower()}.sh"
+
         self.download()
         self.decompress()
         self.install()
         self.make_shortcut()
         self.cleanup()
-        self.post_install()
 
     def download(self):
         status = f"Downloading {self.filename}:"
@@ -107,11 +123,14 @@ class Installer:
                     archive.extract(member)
                     pbar.update()
                 pbar.close()
+                self.dirlocation = f"{self.dir_dest}/{self.dirname}"
         except EOFError as e:
+            self.flags["decompress"] = False
             print(f"\r{status}", end=" ")
             ColorPrint.print_fail("fail")
             print(f"Error: {e}.", file=sys.stderr)
         else:
+            self.flags["decompress"] = True
             print(f"\r{status}", end=" ")
             ColorPrint.print_success("done")
 
@@ -121,14 +140,15 @@ class Installer:
         status = f"Installing {self.dirname} to {self.dir_dest}:"
         print(status, end=" ")
 
-        if "dryrun" not in self.options:
+        if not self.options["dry"] and self.flags["decompress"] is True:
             try:
-                self.dirlocation = self.dir_dest + self.dirname
                 shutil.copytree(self.dirname, self.dirlocation)
             except Exception as e:
+                self.flags["install"] = False
                 ColorPrint.print_fail("fail")
                 print(f"Error: {e}.", file=sys.stderr)
             else:
+                self.flags["install"] = True
                 ColorPrint.print_success("done")
         else:
             print("skipped")
@@ -137,12 +157,12 @@ class Installer:
 
     def make_shortcut(self):
         src = f"{self.dirlocation}/bin/{self.binname}"
-        dest = f"{self.bin_dest}{self.binname}"
+        dest = f"{self.bin_dest}/{self.binname}"
         status = f"Creating symlink from {src} to {dest}:"
         print(status, end=" ")
 
-        if "dryrun" not in self.options:
-            if "symlink" in self.options:
+        if not self.options["dry"] and self.flags["install"] is True:
+            if self.options["symlink"]:
                 src = pathlib.Path(src).resolve()
                 dest = pathlib.Path(dest).resolve()
                 try:
@@ -152,7 +172,7 @@ class Installer:
                     print(f"Error: {e}.", file=sys.stderr)
                 else:
                     ColorPrint.print_success("done")
-            elif "script" in self.options:
+            elif self.options["script"]:
                 pass
             else:
                 print("unknown type")
@@ -162,13 +182,11 @@ class Installer:
         return
 
     def cleanup(self):
-        removeFile(self.filename)
-        removeDir(self.dirname)
+        if self.filename:
+            removeFile(self.filename)
+        if self.dirname:
+            removeDir(self.dirname)
         pass
-
-    def post_install(self):
-        for log in self.install_log:
-            print(log)
 
 
 def removeDir(dirname: str):
@@ -201,8 +219,8 @@ def removeFile(filename: str):
     return
 
 
-def checkAdminPrivilege() -> bool:
-    status = "checking admin privilege:"
+def isAdmin() -> bool:
+    status = "Checking admin privilege:"
     print(status, end=" ")
 
     if os.getuid() == 0:
@@ -229,26 +247,51 @@ def getLatestURL(product_code: str, platform: str = "linux") -> Optional[str]:
 
 
 def main():
-    to_install = [
-        "datagrip",
-        "phpstorm",
-        # "webstorm",
-        # "clion",
-    ]
-    for soft in to_install:
-        print(f"----- {soft.upper()} -----")
-        url = getLatestURL(product_codes[soft])
-        Installer(url, dir_destination="./test_install/", bin_destination="./test_bin/", options=["symlink"]).run()
+    choices = list(product_codes.keys())
+    parser = argparse.ArgumentParser(
+        prog="jetbrains-install",
+        description="Command line installer of Jetbrains IDE",
+        conflict_handler='resolve',
+        epilog="Enjoy :)"
+    )
+    # my_group = parser.add_mutually_exclusive_group(required=False)
+    # my_group.add_argument('-v', '--verbose', action='store_true')
+    # my_group.add_argument('-s', '--silent', action='store_true')
 
-    # parser = argparse.ArgumentParser(
-    #     # prog=""
-    #     description="Command line installer of Jetbrains IDE"
-    # )
-    # parser.add_argument("--install")
-    # parser.add_argument("--bin-destination")
-    # parser.add_argument("--dryrun")
-    # parser.add_argument("--dir-destination")
-    # parser.add_argument("--symlink")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--symlink", action="store_true", help="to create symlink(s)")
+    group.add_argument("--script", action="store_true", help="to create launch script(s)")
+
+    parser.add_argument("-v", '--version', action='version', version='v0.1')
+
+    parser.add_argument("--install", nargs="+", required=True, dest="installs", choices=choices)
+
+    parser.add_argument("--bin-dest", help="where to create the launch script(s) or symlink(s), relative or "
+                                           "absolute path", type=str, default="/usr/local/bin")
+    parser.add_argument("--dir-dest", help="where to install the IDE(s), relative or absolute path", type=str
+                        , default="/opt/")
+
+    parser.add_argument("-d", "--dry", action="store_true", help="to do a test run, no install")
+    # parser.add_argument("--symlink", action="store_true", help="to create symlink(s)")
+    # parser.add_argument("--script", action="store_true", help="to create launch script(s)")
+
+    args = parser.parse_args()
+
+    # print(args)
+    options = {
+        "symlink": args.symlink,
+        "dry": args.dry,
+        "script": None
+    }
+
+    for soft in args.installs:
+        if soft in product_codes:
+            print(f"----- {soft.upper()} -----")
+            url = getLatestURL(product_codes[soft])
+            try:
+                Installer(url, dir_destination=args.dir_dest, bin_destination=args.bin_dest, options=options).run()
+            except InstallerError as e:
+                print(f"Error: {e}.", file=sys.stderr)
 
 
 if __name__ == '__main__':
