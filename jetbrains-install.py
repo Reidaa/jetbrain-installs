@@ -249,22 +249,22 @@ def isAdmin() -> bool:
         return False
 
 
-def getLatestURL(product_code: str, platform: str = "linux") -> Optional[str]:
+def getLatestURL(product_code: str, platform: str = "linux") -> str:
     status = "Finding the latest download link:"
 
     print(status, end=" ")
     r = requests.get(f"https://data.services.jetbrains.com//products/releases?&code={product_code}&latest=true&type"
                      f"=release", timeout=5)
     response = r.json()
-    if platform not in response[product_code][0]["downloads"]:
+    download_links = response["PCP"][0]["downloads"]
+    if platform not in download_links:
         ColorPrint.print_fail("fail")
-        return None
-    download_links = response[product_code][0]["downloads"][platform]["link"]
+        raise Exception("Platform not found")
+    download_link = download_links[platform]["link"]
     ColorPrint.print_success("done")
-    return download_links
+    return download_link
 
-
-def main():
+def parameters() -> function:
     choices = list(product_codes.keys())
     parser = argparse.ArgumentParser(
         prog="jetbrains-install",
@@ -290,10 +290,11 @@ def main():
                         , default="/opt/")
 
     parser.add_argument("-d", "--dry", action="store_true", help="to do a test run, no install")
-    # parser.add_argument("--symlink", action="store_true", help="to create symlink(s)")
-    # parser.add_argument("--script", action="store_true", help="to create launch script(s)")
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+def main():
+    args = parameters()
 
     # print(args)
     options = {

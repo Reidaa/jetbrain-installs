@@ -1,0 +1,97 @@
+{
+    "PCP": [
+        {
+            "date": "2021-04-22",
+            "type": "release",
+            "downloads": {
+                "linux": {
+                    "link": "https://download.jetbrains.com/python/pycharm-professional-2021.1.1.tar.gz",
+                    "size": 580890703,
+                    "checksumLink": "https://download.jetbrains.com/python/pycharm-professional-2021.1.1.tar.gz.sha256"
+                },
+                "thirdPartyLibrariesJson": {
+                    "link": "https://download.jetbrains.com/python/pycharmPY-2021.1.1-third-party-libraries.json",
+                    "size": 42532,
+                    "checksumLink": "https://download.jetbrains.com/python/pycharmPY-2021.1.1-third-party-libraries.json.sha256"
+                },
+                "windows": {
+                    "link": "https://download.jetbrains.com/python/pycharm-professional-2021.1.1.exe",
+                    "size": 466773176,
+                    "checksumLink": "https://download.jetbrains.com/python/pycharm-professional-2021.1.1.exe.sha256"
+                },
+                "mac": {
+                    "link": "https://download.jetbrains.com/python/pycharm-professional-2021.1.1.dmg",
+                    "size": 582231331,
+                    "checksumLink": "https://download.jetbrains.com/python/pycharm-professional-2021.1.1.dmg.sha256"
+                },
+                "macM1": {
+                    "link": "https://download.jetbrains.com/python/pycharm-professional-2021.1.1-aarch64.dmg",
+                    "size": 574354617,
+                    "checksumLink": "https://download.jetbrains.com/python/pycharm-professional-2021.1.1-aarch64.dmg.sha256"
+                }
+            },
+            "patches": {
+                "win": [
+                    {
+                        "fromBuild": "211.7036.9",
+                        "link": "https://download.jetbrains.com/python/PY-211.7036.9-211.7142.13-patch-jbr11-win.jar",
+                        "size": 60072017,
+                        "checksumLink": "https://download.jetbrains.com/python/PY-211.7036.9-211.7142.13-patch-jbr11-win.jar.sha256"
+                    },
+                    {
+                        "fromBuild": "211.6693.115",
+                        "link": "https://download.jetbrains.com/python/PY-211.6693.115-211.7142.13-patch-jbr11-win.jar",
+                        "size": 60337508,
+                        "checksumLink": "https://download.jetbrains.com/python/PY-211.6693.115-211.7142.13-patch-jbr11-win.jar.sha256"
+                    }
+                ],
+                "mac": [
+                    {
+                        "fromBuild": "211.7036.9",
+                        "link": "https://download.jetbrains.com/python/PY-211.7036.9-211.7142.13-patch-jbr11-mac.jar",
+                        "size": 58965775,
+                        "checksumLink": "https://download.jetbrains.com/python/PY-211.7036.9-211.7142.13-patch-jbr11-mac.jar.sha256"
+                    },
+                    {
+                        "fromBuild": "211.6693.115",
+                        "link": "https://download.jetbrains.com/python/PY-211.6693.115-211.7142.13-patch-jbr11-mac.jar",
+                        "size": 59241287,
+                        "checksumLink": "https://download.jetbrains.com/python/PY-211.6693.115-211.7142.13-patch-jbr11-mac.jar.sha256"
+                    }
+                ],
+                "unix": [
+                    {
+                        "fromBuild": "211.7036.9",
+                        "link": "https://download.jetbrains.com/python/PY-211.7036.9-211.7142.13-patch-jbr11-unix.jar",
+                        "size": 58498300,
+                        "checksumLink": "https://download.jetbrains.com/python/PY-211.7036.9-211.7142.13-patch-jbr11-unix.jar.sha256"
+                    },
+                    {
+                        "fromBuild": "211.6693.115",
+                        "link": "https://download.jetbrains.com/python/PY-211.6693.115-211.7142.13-patch-jbr11-unix.jar",
+                        "size": 58763049,
+                        "checksumLink": "https://download.jetbrains.com/python/PY-211.6693.115-211.7142.13-patch-jbr11-unix.jar.sha256"
+                    }
+                ]
+            },
+            "notesLink": "https://confluence.jetbrains.com/display/PYH/PyCharm+2021.1.1+Release+Notes",
+            "licenseRequired": true,
+            "version": "2021.1.1",
+            "majorVersion": "2021.1",
+            "build": "211.7142.13",
+            "whatsnew": "<ul> \n <li>Find in Files: search is working well again. <a href=\"https://youtrack.jetbrains.com/issue/IDEA-266391\">[IDEA-266391]</a> </li> \n <li>Python Console: auto-import is now disabled. <a href=\"https://youtrack.jetbrains.com/issue/PY-47905\">[PY-47905]</a> </li> \n <li>Jupyter Notebooks: autoscroll for the preview and editor panes works synchronously. <a href=\"https://youtrack.jetbrains.com/issue/PY-47976\">[PY-47976]</a> </li> \n <li>Jupyter Notebooks: the preview pane no longer freezes after the computer exits inactive mode. <a href=\"https://youtrack.jetbrains.com/issue/PY-45112\">[PY-45112]</a> </li> \n <li>Code insight: code completion for NumPy no longer suggests inappropriate options due to the updated NumPy stubs. <a href=\"https://youtrack.jetbrains.com/issue/PY-48166\">[PY-48166]</a> </li> \n <li>Code insight: for the import alias action, only immediate attributes of the corresponding module are now suggested after a dot. <a href=\"https://youtrack.jetbrains.com/issue/PY-47253\">[PY-47253]</a> </li> \n <li>PyCharm no longer scans your home directory for virtual environments. <a href=\"https://youtrack.jetbrains.com/issue/PY-47913\">[PY-47913]</a> </li> \n</ul>  \n<p></p>",
+            "uninstallFeedbackLinks": {
+                "linux": "https://www.jetbrains.com/pycharm/uninstall/?version=PY-2021.1.1",
+                "windowsAnaconda": "https://www.jetbrains.com/pycharm/uninstall/?version=PY-2021.1.1",
+                "macAnaconda": "https://www.jetbrains.com/pycharm/uninstall/?version=PY-2021.1.1",
+                "linuxAnaconda": "https://www.jetbrains.com/pycharm/uninstall/?version=PY-2021.1.1",
+                "thirdPartyLibrariesJson": "https://www.jetbrains.com/pycharm/uninstall/?version=PY-2021.1.1",
+                "windows": "https://www.jetbrains.com/pycharm/uninstall/?version=PY-2021.1.1",
+                "mac": "https://www.jetbrains.com/pycharm/uninstall/?version=PY-2021.1.1",
+                "macM1": "https://www.jetbrains.com/pycharm/uninstall/?version=PY-2021.1.1",
+                "macM1Anaconda": "https://www.jetbrains.com/pycharm/uninstall/?version=PY-2021.1.1"
+            },
+            "printableReleaseType": null
+        }
+    ]
+}
