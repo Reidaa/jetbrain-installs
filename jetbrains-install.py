@@ -1,12 +1,10 @@
-#!/usr/bin/env python3
-
 import argparse
 import os
 import pathlib
 import shutil
 import sys
 import tarfile
-from typing import Optional, Dict
+from typing import Optional, Dict, Callable
 
 import colorama
 import requests
@@ -264,7 +262,7 @@ def getLatestURL(product_code: str, platform: str = "linux") -> str:
     ColorPrint.print_success("done")
     return download_link
 
-def parameters() -> function:
+def parameters() -> Callable:
     choices = list(product_codes.keys())
     parser = argparse.ArgumentParser(
         prog="jetbrains-install",
@@ -289,7 +287,7 @@ def parameters() -> function:
     parser.add_argument("--dir-dest", help="where to install the IDE(s), relative or absolute path", type=str
                         , default="/opt/")
 
-    parser.add_argument("-d", "--dry", action="store_true", help="to do a test run, no install")
+    parser.add_argument("-d", "--dry", action="store_true", help="test run, nothing is installed")
 
     return parser.parse_args()
 
