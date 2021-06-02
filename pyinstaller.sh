@@ -1,1 +1,0 @@
-pyinstaller --onefile jetbrains-install.py

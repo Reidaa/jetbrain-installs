@@ -28,6 +28,14 @@ product_codes = {
     "rider": "RD",
 }
 
+ADMIN_DEFAULT_BINARY_PATH = "/usr/local/bin"
+ADMIN_DEFAULT_INSTALL_DIRECTORY_PATH = "/opt"
+
+USER_DEFAULT_BINARY_PATH = ""
+USER_DEFAULT_INSTALL_DIR_PATH = "/opt"
+
+DEFAULT_URL = "https://data.services.jetbrains.com//products/releases?&code={code}&latest=true&type=release"
+
 
 class ColorPrint:
     @staticmethod
@@ -44,14 +52,9 @@ class InstallerError(Exception):
 
 
 class Installer:
-    def __init__(self,
-                 url: str,
-                 bin_destination: str = "/usr/local/bin",
-                 dir_destination: str = "/opt/",
-                 options: Dict[str, bool] = None
-                 ):
+    def __init__(self, url: str, bin_destination: Optional[str] = None, dir_destination: Optional[str] = None, options: Optional[Dict[str, bool]] = None):
         self.bin_dest = bin_destination
-        self.dir_dest = dir_destination
+        self.dir_dest = dir_destination  
         self.options = options
         self.url = url
 
@@ -73,9 +76,11 @@ class Installer:
         self.bin_dest = pathlib.Path(self.bin_dest).resolve()
         self.dir_dest = pathlib.Path(self.dir_dest).resolve()
 
-        if not isAdmin():
-            if not os.access(self.dir_dest, os.W_OK) or not os.access(self.bin_dest, os.W_OK):
-                raise InstallerError(f"Can not access '{self.dir_dest}' and/or '{self.bin_dest}' as regular user")
+        if not os.access(self.dir_dest, os.W_OK):
+            raise InstallerError(f"Can not access '{self.dir_dest}'")
+        if not os.access(self.bin_dest, os.W_OK):
+            raise InstallerError(f"Can not access '{self.bin_dest}'")
+
 
         self.filename = self.url.rsplit('/', 1)[1]
         self.binname = f"{self.filename.split('-')[0].lower()}.sh"
@@ -195,8 +200,6 @@ class Installer:
         print(status, end=" ")
         pass
 
-
-
     def cleanup(self):
         if self.filename:
             removeFile(self.filename)
@@ -235,7 +238,7 @@ def removeFile(filename: str):
     return
 
 
-def isAdmin() -> bool:
+def is_admin() -> bool:
     status = "Checking admin privilege:"
     print(status, end=" ")
 
@@ -251,8 +254,7 @@ def getLatestURL(product_code: str, platform: str = "linux") -> str:
     status = "Finding the latest download link:"
 
     print(status, end=" ")
-    r = requests.get(f"https://data.services.jetbrains.com//products/releases?&code={product_code}&latest=true&type"
-                     f"=release", timeout=5)
+    r = requests.get(DEFAULT_URL.format(code=product_code), timeout=5)
     response = r.json()
     download_links = response["PCP"][0]["downloads"]
     if platform not in download_links:
@@ -261,6 +263,7 @@ def getLatestURL(product_code: str, platform: str = "linux") -> str:
     download_link = download_links[platform]["link"]
     ColorPrint.print_success("done")
     return download_link
+
 
 def parameters() -> Callable:
     choices = list(product_codes.keys())
@@ -275,21 +278,26 @@ def parameters() -> Callable:
     # my_group.add_argument('-s', '--silent', action='store_true')
 
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--symlink", action="store_true", help="to create symlink(s)")
-    group.add_argument("--script", action="store_true", help="to create launch script(s)")
+    group.add_argument("--symlink", action="store_true",
+                       help="to create symlink(s)")
+    group.add_argument("--script", action="store_true",
+                       help="to create launch script(s)")
 
     parser.add_argument("-v", '--version', action='version', version='v0.1')
 
-    parser.add_argument("--install", nargs="+", required=True, dest="installs", choices=choices)
+    parser.add_argument("--install", nargs="+", required=True,
+                        dest="installs", choices=choices)
 
     parser.add_argument("--bin-dest", help="where to create the launch script(s) or symlink(s), relative or "
                                            "absolute path", type=str, default="/usr/local/bin")
-    parser.add_argument("--dir-dest", help="where to install the IDE(s), relative or absolute path", type=str
-                        , default="/opt/")
+    parser.add_argument(
+        "--dir-dest", help="where to install the IDE(s), relative or absolute path", type=str, default="/opt/")
 
-    parser.add_argument("-d", "--dry", action="store_true", help="test run, nothing is installed")
+    parser.add_argument("-d", "--dry", action="store_true",
+                        help="test run, nothing is installed")
 
     return parser.parse_args()
+
 
 def main():
     args = parameters()
