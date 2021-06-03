@@ -10,7 +10,6 @@ tqdm = "*"
 
 [dev-packages]
 pyinstaller = "*"
-Nuitka = "*"
 
 [requires]
 python_version = "3.8"

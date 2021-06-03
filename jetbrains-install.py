@@ -53,8 +53,8 @@ class InstallerError(Exception):
 
 class Installer:
     def __init__(self, url: str, bin_destination: Optional[str] = None, dir_destination: Optional[str] = None, options: Optional[Dict[str, bool]] = None):
-        self.bin_dest = bin_destination
-        self.dir_dest = dir_destination  
+        self.bin_dest = bin_destination if (bin_destination is not None) else ADMIN_DEFAULT_BINARY_PATH
+        self.dir_dest = dir_destination if (dir_destination is not None) else ADMIN_DEFAULT_INSTALL_DIRECTORY_PATH
         self.options = options
         self.url = url
 

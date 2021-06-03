@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "017268496583307bb65ffd652b27710ac4bb95db2c6f9eb84c7c447b1714473e"
+            "sha256": "9d8c8ff0c128fca7dff184b0037814f2faa4e49575dc2dd34ee8a515a96cdfdb"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -18,10 +18,10 @@
     "default": {
         "certifi": {
             "hashes": [
-                "sha256:1a4995114262bffbc2413b159f2a1a480c969de6e6eb13ee966d470af86af59c",
-                "sha256:719a74fb9e33b9bd44cc7f3a8d94bc35e4049deebe19ba7d8e108280cfd59830"
+                "sha256:2bbf76fd432960138b3ef6dda3dde0544f27cbf8546c458e60baf371917ba9ee",
+                "sha256:50b1e4f8446b06f41be7dd6338db18e0990601dce795c2b1686458aa7e8fa7d8"
             ],
-            "version": "==2020.12.5"
+            "version": "==2021.5.30"
         },
         "chardet": {
             "hashes": [
@@ -76,13 +76,6 @@
                 "sha256:c623e5f3408ca61d4016f23a681b9adb100802ca3e3da5e718915a9e4052cebe"
             ],
             "version": "==0.17"
-        },
-        "nuitka": {
-            "hashes": [
-                "sha256:62c594395e994c14f84350bc0e08ea5f2c7d17579adeafe1910015347ad4a2c7"
-            ],
-            "index": "pypi",
-            "version": "==0.6.15"
         },
         "pyinstaller": {
             "hashes": [
