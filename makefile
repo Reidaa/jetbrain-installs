@@ -1,15 +1,16 @@
 RM			=	rm -rf
-TARGET		=	jetbrains-installer
+TARGET		=	ji
 
 all:		$(TARGET)
 
 $(TARGET): 
-		pyinstaller jetbrains-install.py --onefile
+		pyinstaller $(TARGET).py --onefile
 
 clean:
 		$(RM) build/
 		$(RM) dist/
-		$(RM) jetbrains-install.spec
+		$(RM) *.spec
+		$(RM) __pycache__/
 
 re:		clean all
 
