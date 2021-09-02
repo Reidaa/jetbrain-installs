@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import os
 import shutil
@@ -54,6 +56,10 @@ class ColorPrint:
     @staticmethod
     def print_fail(message: str, end: str = "\n"):
         print(f"{colorama.Fore.RED}{message}{colorama.Style.RESET_ALL}", end=end)
+
+    @staticmethod
+    def print_skipped(message: str, end: str = "\n"):
+        print(f"{colorama.Fore.MAGENTA}{message}{colorama.Style.RESET_ALL}", end=end)
 
 
 class InstallerError(Exception):
@@ -202,7 +208,8 @@ class Installer:
                 self.flags.installed = True
                 ColorPrint.print_success("done")
         else:
-            print("skipped")
+            # print("skipped")
+            ColorPrint.print_skipped("skipped")
 
     def _make_shortcut(self):
         src = f"{self.dir_location}/bin/{self.bin_name}"
@@ -214,7 +221,7 @@ class Installer:
             if self.options.symlink:
                 self._make_link()
         else:
-            print("skipped")
+            ColorPrint.print_skipped("skipped")
 
     def _make_link(self):
         src = f"{self.dir_location}/bin/{self.bin_name}"
@@ -231,9 +238,6 @@ class Installer:
             print(f"Error: {e}.", file=sys.stderr)
         else:
             ColorPrint.print_success("done")
-
-    def _make_script(self):
-        raise NotImplementedError
 
     def cleanup(self):
         if Path(self.filename).exists():
@@ -310,7 +314,6 @@ def parameters():
     install_group.add_argument("--install", nargs="+", dest="installs", metavar="XXX")
     shortcut_group = install_group.add_mutually_exclusive_group(required=True)
     shortcut_group.add_argument("-l", "--link", action="store_true", help="create symlink(s)", dest="is_link")
-    shortcut_group.add_argument("-s", "--script", action="store_true", help="create script(s)", dest="is_script")
     install_group.add_argument("--shortcut-loc", help=ARG_BIN_DEST_DESC, type=str, metavar="PATH", dest="bin_dest")
     install_group.add_argument("--install-loc", help=ARG_DIR_DEST_DESC, type=str, metavar="PATH", dest="dir_dest")
     install_group.add_argument("-d", "--dry", help=ARG_DRY_DESC, action="store_true")
