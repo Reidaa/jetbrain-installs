@@ -73,10 +73,8 @@ class InstallerFlags:
 
 
 class InstallerOptions:
-    def __init__(self, symlink: bool = False, dry: bool = False, script: bool = False):
-        self.__symlink = symlink
+    def __init__(self, dry: bool = False):
         self.__dry = dry
-        self.__script = script
         self.__shortcut_dirpath = None
         self.__install_dirpath = None
 
@@ -91,14 +89,6 @@ class InstallerOptions:
     @property
     def dry(self):
         return self.__dry
-
-    @property
-    def symlink(self):
-        return self.__symlink
-
-    @property
-    def script(self):
-        return self.__script
 
 
 class Installer:
@@ -146,7 +136,7 @@ class Installer:
             self._install()
             self._make_shortcut()
         else:
-            print("Installation skipped")
+            ColorPrint.print_skipped("Installation skipped")
 
     def _download(self):
         status = f"Downloading {self.filename}:"
@@ -218,8 +208,7 @@ class Installer:
         print(status, end=" ")
 
         if self.flags.installed is True:
-            if self.options.symlink:
-                self._make_link()
+            self._make_link()
         else:
             ColorPrint.print_skipped("skipped")
 
@@ -312,8 +301,6 @@ def parameters():
 
     install_group = parser.add_argument_group()
     install_group.add_argument("--install", nargs="+", dest="installs", metavar="XXX")
-    shortcut_group = install_group.add_mutually_exclusive_group(required=True)
-    shortcut_group.add_argument("-l", "--link", action="store_true", help="create symlink(s)", dest="is_link")
     install_group.add_argument("--shortcut-loc", help=ARG_BIN_DEST_DESC, type=str, metavar="PATH", dest="bin_dest")
     install_group.add_argument("--install-loc", help=ARG_DIR_DEST_DESC, type=str, metavar="PATH", dest="dir_dest")
     install_group.add_argument("-d", "--dry", help=ARG_DRY_DESC, action="store_true")
@@ -323,7 +310,7 @@ def parameters():
 
 def main():
     args = parameters()
-    options = InstallerOptions(symlink=args.is_link, dry=args.dry)
+    options = InstallerOptions(dry=args.dry)
     # choices = list(product_codes.keys())
 
     if sys.platform != "linux":
