@@ -313,8 +313,8 @@ def main():
     options = InstallerOptions(dry=args.dry)
     # choices = list(product_codes.keys())
 
-    if sys.platform != "linux":
-        raise NotImplementedError(f"Not usable on {sys.platform}")
+    if sys.platform.startswith("linux") is False:
+        raise NotImplementedError(f"{sys.platform} not supported")
     for soft in set(args.installs):
         print(SEPARATION.format(soft=soft.upper()))
         if soft not in product_codes:
