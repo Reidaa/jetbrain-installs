@@ -11,7 +11,7 @@ import colorama
 import requests
 from tqdm import tqdm
 
-# TODO ADD SUBPARSERS GROUP (JI INSTALL)
+# TODO ADD REMOVE (JI REMOVE)
 # TODO CATCH CTRL+C
 # TODO ADD UNIT TEST
 
@@ -311,7 +311,6 @@ def parameters():
 def main():
     args = parameters()
     options = InstallerOptions(dry=args.dry)
-    # choices = list(product_codes.keys())
 
     if sys.platform.startswith("linux") is False:
         raise NotImplementedError(f"{sys.platform} not supported")
