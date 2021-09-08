@@ -12,6 +12,7 @@ import requests
 from tqdm import tqdm
 
 # TODO ADD REMOVE (JI REMOVE)
+# TODO ADD UPDATE (JI UPDATE)
 # TODO CATCH CTRL+C
 # TODO ADD UNIT TEST
 
@@ -33,13 +34,15 @@ product_codes = {
     "rider": ["RD"],
 }
 
+DEFAULT_URL = "https://data.services.jetbrains.com//products/releases?&code={code}&latest=true&type=release"
+
 DEFAULT_BINARY_PATH = "/usr/local/bin"
 DEFAULT_INSTALL_DIRECTORY_PATH = "/opt"
 DEFAULT_TMP_FILE_PATH = "/tmp/"
-DEFAULT_URL = "https://data.services.jetbrains.com//products/releases?&code={code}&latest=true&type=release"
+
 ARG_BIN_DEST_DESC = "path of the launch script(s) or symlink(s)"
 ARG_DIR_DEST_DESC = "path to the IDE(s)' directory(ies)"
-ARG_DRY_DESC = "test run, nothing is installed"
+ARG_DRY_DESC = "test run, nothing is installed or removed"
 SEPARATION = "----- {soft} -----"
 HELP = f"""\
 Enjoy :)
@@ -73,10 +76,10 @@ class InstallerFlags:
 
 
 class InstallerOptions:
-    def __init__(self, dry: bool = False):
+    def __init__(self, dry: bool = False, shortcut_path: Optional[str] = None, dir_path: Optional[str] = None):
         self.__dry = dry
-        self.__shortcut_dirpath = None
-        self.__install_dirpath = None
+        self.__shortcut_dirpath = shortcut_path if (shortcut_path is not None) else DEFAULT_BINARY_PATH
+        self.__install_dirpath = dir_path if (dir_path is not None) else DEFAULT_INSTALL_DIRECTORY_PATH
 
     @property
     def shortcut_dirpath(self):
@@ -84,7 +87,7 @@ class InstallerOptions:
 
     @property
     def install_dirpath(self):
-        return self.__shortcut_dirpath
+        return self.__install_dirpath
 
     @property
     def dry(self):
@@ -92,20 +95,18 @@ class InstallerOptions:
 
 
 class Installer:
-    def __init__(self, url: str, options: InstallerOptions, shortcut_path: Optional[str] = None,
-                 dir_path: Optional[str] = None
-                 ):
-        self.bin_dest = shortcut_path if (shortcut_path is not None) else DEFAULT_BINARY_PATH
-        self.dir_dest = dir_path if (dir_path is not None) else DEFAULT_INSTALL_DIRECTORY_PATH
+    def __init__(self, url: str, options: InstallerOptions):
         self.options: InstallerOptions = options
         self.url = url
+        self.flags = InstallerFlags()
 
         self.dir_location = ""
         self.filename: str = ""
         self.dl_loc: str = ""
         self.dirname: str = ""
         self.bin_name: str = ""
-        self.flags = InstallerFlags()
+        self.dir_dest: str = ""
+        self.bin_dest: str = ""
 
     def __enter__(self):
         return self
@@ -114,13 +115,13 @@ class Installer:
         self.cleanup()
 
     def run(self):
-        if not Path(self.dir_dest).is_dir():
+        if not Path(self.options.install_dirpath).is_dir():
             raise InstallerError("Install location is not a directory")
-        if not Path(self.bin_dest).is_dir():
-            raise InstallerError("Binary install location is not a directory")
+        if not Path(self.options.shortcut_dirpath).is_dir():
+            raise InstallerError("Shortcut install location is not a directory")
 
-        self.bin_dest = Path(self.bin_dest).resolve()
-        self.dir_dest = Path(self.dir_dest).resolve()
+        self.bin_dest = Path(self.options.shortcut_dirpath).resolve()
+        self.dir_dest = Path(self.options.install_dirpath).resolve()
 
         # if not self.options.dry:
         # if not os.access(self.bin_dest, os.W_OK):
@@ -136,7 +137,7 @@ class Installer:
             self._install()
             self._make_shortcut()
         else:
-            ColorPrint.print_skipped("Installation skipped")
+            ColorPrint.print_skipped("Dry install, installation skipped")
 
     def _download(self):
         status = f"Downloading {self.filename}:"
@@ -174,8 +175,8 @@ class Installer:
         except EOFError as e:
             self.flags.decompressed = False
             print(f"\r{status}", end=" ")
-            ColorPrint.print_fail("fail")
-            print(f"Error: {e}.", file=sys.stderr)
+            ColorPrint.print_fail(f"fail: Error: {e}.")
+            # print(f"Error: {e}.", file=sys.stderr)
         else:
             self.flags.decompressed = True
             print(f"\r{status}", end=" ")
@@ -192,8 +193,8 @@ class Installer:
                 shutil.copytree(self.dirname, self.dir_location)
             except Exception as e:
                 self.flags.installed = False
-                ColorPrint.print_fail("fail")
-                print(f"Error: {e}.", file=sys.stderr)
+                ColorPrint.print_fail(f"fail: Error: {e}.")
+                # print(f"Error: {e}.", file=sys.stderr)
             else:
                 self.flags.installed = True
                 ColorPrint.print_success("done")
@@ -207,36 +208,30 @@ class Installer:
         status = f"Creating symlink from {src} to {dest}:"
         print(status, end=" ")
 
-        if self.flags.installed is True:
-            self._make_link()
-        else:
+        if self.flags.installed is False:
             ColorPrint.print_skipped("skipped")
-
-    def _make_link(self):
-        src = f"{self.dir_location}/bin/{self.bin_name}"
-        dest = f"{self.bin_dest}/{self.bin_name}"
-        status = f"Creating symlink from {src} to {dest}:"
-        print(status, end=" ")
-
-        src = Path(src).resolve()
-        dest = Path(dest).resolve()
-        try:
-            os.symlink(src, dest)
-        except Exception as e:
-            ColorPrint.print_fail("fail")
-            print(f"Error: {e}.", file=sys.stderr)
         else:
-            ColorPrint.print_success("done")
+            src = Path(src).resolve()
+            dest = Path(dest).resolve()
+            try:
+                os.symlink(src, dest)
+            except Exception as e:
+                ColorPrint.print_fail(f"fail: Error: {e}.")
+                # print(f"Error: {e}.", file=sys.stderr)
+            else:
+                ColorPrint.print_success("done")
+
 
     def cleanup(self):
         if Path(self.filename).exists():
             OSOperation.remove_file(self.filename)
+        if Path(self.dl_loc).exists():
+            OSOperation.remove_file(self.dl_loc)
         if Path(self.dirname).exists():
             OSOperation.remove_dir(self.dirname)
 
 
 class OSOperation:
-
     @staticmethod
     def remove_dir(dirpath: str):
         status = f"Removing dir {dirpath}:"
@@ -299,28 +294,39 @@ def parameters():
         epilog=HELP
     )
 
-    install_group = parser.add_argument_group()
-    install_group.add_argument("--install", nargs="+", dest="installs", metavar="XXX")
-    install_group.add_argument("--shortcut-loc", help=ARG_BIN_DEST_DESC, type=str, metavar="PATH", dest="bin_dest")
-    install_group.add_argument("--install-loc", help=ARG_DIR_DEST_DESC, type=str, metavar="PATH", dest="dir_dest")
-    install_group.add_argument("-d", "--dry", help=ARG_DRY_DESC, action="store_true")
+    # subparsers = parser.add_subparsers(dest="subparser_name")
+    # parser_install = subparsers.add_parser("install", help="install help")
+    # parser_remove = subparsers.add_parser("remove", help="remove help")
+    # parser_update = subparsers.add_parser("update", help="update help")
+    # parser_install.add_argument("softs", nargs="+", metavar="XXX")
+    # parser_install.add_argument("--install-loc", help=ARG_DIR_DEST_DESC, type=str, metavar="PATH", dest="dir_dest")
+    # parser_install.add_argument("--shortcut-loc", help=ARG_BIN_DEST_DESC, type=str, metavar="PATH", dest="bin_dest")
+    # parser_remove.add_argument("softs", nargs="+", metavar="XXX")
+    # parser_update.add_argument("softs", nargs="+", metavar="XXX")
+
+    parser.add_argument("-i", "--install", nargs="+", dest="softs", metavar="soft", required=True)
+    parser.add_argument("-d", "--dry", help=ARG_DRY_DESC, action="store_true")
+    parser.add_argument("--install-loc", help=ARG_DIR_DEST_DESC, type=str, metavar="PATH", dest="dir_dest")
+    parser.add_argument("--shortcut-loc", help=ARG_BIN_DEST_DESC, type=str, metavar="PATH", dest="bin_dest")
 
     return parser.parse_args()
 
 
 def main():
     args = parameters()
-    options = InstallerOptions(dry=args.dry)
 
     if sys.platform.startswith("linux") is False:
         raise NotImplementedError(f"{sys.platform} not supported")
-    for soft in set(args.installs):
+
+    for soft in set(args.softs):
         print(SEPARATION.format(soft=soft.upper()))
         if soft not in product_codes:
             print(f"unknown, skipping")
         else:
+
+            options = InstallerOptions(dry=args.dry, dir_path=args.dir_dest, shortcut_path=args.bin_dest)
             url = get_latest_url(product_codes[soft])
-            with Installer(url, options, dir_path=args.dir_dest, shortcut_path=args.bin_dest) as installer:
+            with Installer(url, options) as installer:
                 installer.run()
 
 
