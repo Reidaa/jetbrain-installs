@@ -279,7 +279,8 @@ def get_latest_url(product_code: str, platform: str = "linux") -> str:
     response = r.json()
     download_links = response[product_code[-1]][0]["downloads"]
     if platform not in download_links:
-        ColorPrint.print_fail("fail")
+        e = "Platform not found"
+        ColorPrint.print_fail(f"fail: {e}")
         raise Exception("Platform not found")
     download_link = download_links[platform]["link"]
     ColorPrint.print_success("done")
