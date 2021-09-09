@@ -205,7 +205,7 @@ class Installer:
     def _make_shortcut(self):
         src = f"{self.dir_location}/bin/{self.bin_name}"
         dest = f"{self.bin_dest}/{self.bin_name}"
-        status = f"Creating symlink from {src} to {dest}:"
+        status = f"Creating symlink {src} -> {dest}:"
         print(status, end=" ")
 
         if self.flags.installed is False:
